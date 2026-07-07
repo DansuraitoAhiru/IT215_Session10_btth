@@ -29,14 +29,6 @@ class CreateShipment(BaseModel):
     tracking_number: str
     status: str
 
-# Hàm Dependency cung cấp Database Session cho API
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
 @app.post("/shipments")
 def create_shipment(tracking_number: str, db: Session = Depends(get_db)):
     try:
@@ -52,11 +44,12 @@ def create_shipment(tracking_number: str, db: Session = Depends(get_db)):
         return new_shipment
     
     except HTTPException:
+        db.rollback()
         raise
-    
+
     except Exception as e:
         db.rollback()
-        return {"message": str(e)}
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, str(e))
     
 @app.get("/shipments")
 def get_shipments(db: Session = Depends(get_db)):
